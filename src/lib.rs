@@ -9,3 +9,4 @@ pub mod dependency_graph;
 pub mod rules;
 pub mod batch;
 pub mod scenario;
+pub mod wasm_api;

@@ -3,7 +3,7 @@ ward: 5
 revision: null
 name: "WASM Bridge"
 epic: "Bridge og Render Layer"
-status: "planned"
+status: "gold"
 dependencies: [1, 2, 3, 4]
 layer: "rust"
 estimated_tests: 6

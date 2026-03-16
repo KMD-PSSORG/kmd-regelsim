@@ -1,0 +1,27 @@
+---
+alwaysApply: true
+---
+
+## WDD CLI Commands
+You have access to the `wdd` CLI. Use it actively:
+
+### Before starting work
+Run `wdd session` to get full project context.
+
+### When writing tests for a new Ward
+Run `wdd ward status <id> red` after writing test files.
+
+### When tests are approved and you start implementing
+Run `wdd ward status <id> gold` before writing implementation.
+
+### When implementation is done and all tests pass
+Report to human. Do NOT run `wdd complete` — that's a human action.
+
+### To check project health
+Run `wdd validate` before reporting completion.
+
+### To regenerate progress
+Run `wdd progress` after any ward status change.
+
+### To search for past decisions
+Run `wdd search "<query>"` or `wdd search --tag "<tag>"` when you need context about previous architectural decisions.
