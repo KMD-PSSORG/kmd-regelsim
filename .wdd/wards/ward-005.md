@@ -3,12 +3,12 @@ ward: 5
 revision: null
 name: "WASM Bridge"
 epic: "Bridge og Render Layer"
-status: "gold"
+status: "complete"
 dependencies: [1, 2, 3, 4]
 layer: "rust"
 estimated_tests: 6
 created: "2026-03-16"
-completed: null
+completed: "2026-03-16"
 ---
 # Ward 005: WASM Bridge
 

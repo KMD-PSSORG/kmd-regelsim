@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <title>Ward 7 — Case Explainer Tests</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .test-runner { padding: 24px; max-width: 800px; margin: 0 auto; }
+    .test-result { padding: 8px 12px; margin: 4px 0; border-radius: 4px; font-family: var(--mono); font-size: 0.85rem; }
+    .test-result.pass { background: #1a3a2a; color: var(--positive); }
+    .test-result.fail { background: #3a1a1a; color: var(--negative); }
+    .test-summary { margin-top: 16px; font-size: 1.1rem; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="test-runner">
+    <h1>Ward 7 — Case Explainer Tests</h1>
+    <div id="results"></div>
+    <div id="summary" class="test-summary"></div>
+  </div>
+
+  <div id="test-container" style="position:absolute;left:-9999px;width:800px;height:600px;">
+  </div>
+
+  <script type="module">
+    import { createCasePanel } from './components/case_panel.js';
+    import { renderRuleGraph } from './components/rule_graph.js';
+
+    const resultsEl = document.getElementById('results');
+    const summaryEl = document.getElementById('summary');
+    const tc = document.getElementById('test-container');
+    let passed = 0, failed = 0;
+
+    function assert(condition, msg) {
+      if (!condition) throw new Error(msg);
+    }
+
+    function report(name, status, detail) {
+      const div = document.createElement('div');
+      div.className = 'test-result ' + status;
+      div.textContent = status.toUpperCase() + ' ' + name + (detail ? ': ' + detail : '');
+      div.dataset.testName = name;
+      div.dataset.testStatus = status;
+      resultsEl.appendChild(div);
+      if (status === 'pass') passed++; else failed++;
+    }
+
+    async function runTest(name, fn) {
+      try { await fn(); report(name, 'pass'); }
+      catch (e) { report(name, 'fail', e.message); }
+    }
+
+    const mockCase = {
+      borger_id: 42,
+      alder: 34,
+      kommune_id: 101,
+      husstandstype: 'enlig_forsoerger',
+      beskaeftigelse: 'ledig',
+      indkomst: 0,
+      husleje: 6500,
+      boligareal: 75,
+      antal_boern: 2,
+      rules: [
+        { rule: 'kontanthjaelp', baseline_amount: 15970, scenario_amount: 16470, eligible: true, delta: 500, explanation: 'Enlig over 30, basissats 12.550 kr. Fors\u00f8rgertill\u00e6g: 2 b\u00f8rn \u2192 +3.420 kr.', threshold_warnings: [] },
+        { rule: 'boligstoette', baseline_amount: 3200, scenario_amount: 3100, eligible: true, delta: -100, explanation: 'Husleje 6.500 kr, boligareal 75 m\u00b2. Indkomst inkl. kontanthj\u00e6lp.', threshold_warnings: ['2,8% fra boligst\u00f8tte-gr\u00e6nsen'] },
+        { rule: 'boerneydelse', baseline_amount: 2819, scenario_amount: 2819, eligible: true, delta: 0, explanation: '2 b\u00f8rn: 1 barn 3-6 \u00e5r (1.246 kr), 1 barn 7-14 \u00e5r (980 kr).', threshold_warnings: [] },
+      ],
+    };
+
+    // ── Test 5 (browser): Dependency graph SVG ──
+    await runTest('test_dependency_graph_svg', () => {
+      const graphContainer = document.createElement('div');
+      tc.appendChild(graphContainer);
+      renderRuleGraph(graphContainer, mockCase.rules, 'kontanthjaelp');
+
+      const svg = graphContainer.querySelector('svg');
+      assert(svg, 'should render an SVG');
+
+      const boxes = svg.querySelectorAll('.rule-box');
+      assert(boxes.length === 3, 'expected 3 rule boxes, got ' + boxes.length);
+
+      const arrows = svg.querySelectorAll('.dep-arrow');
+      assert(arrows.length >= 1, 'expected at least 1 dependency arrow');
+
+      const highlighted = svg.querySelector('.rule-box.highlighted');
+      assert(highlighted, 'should highlight the rule with largest delta');
+    });
+
+    // ── Test 6 (browser): Danish formatting ──
+    await runTest('test_danish_formatting', () => {
+      const panel = createCasePanel();
+      tc.appendChild(panel.element);
+      panel.open(mockCase);
+
+      const text = panel.element.textContent;
+      // Danish number format: 12.550 (dot as thousand separator)
+      assert(text.includes('12.550') || text.includes('15.970') || text.includes('16.470'),
+        'should contain Danish-formatted numbers: ' + text.substring(0, 200));
+      assert(text.includes('kr'), 'should contain "kr" currency marker');
+    });
+
+    // ── Test 7 (browser): Overlay escape/click-outside close ──
+    await runTest('test_overlay_escape_close', async () => {
+      const panel = createCasePanel();
+      document.body.appendChild(panel.element);
+      panel.open(mockCase);
+
+      assert(panel.element.classList.contains('open') || !panel.element.hidden,
+        'panel should be visible after open');
+
+      // Escape key should close
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await new Promise(r => setTimeout(r, 50));
+
+      assert(panel.element.classList.contains('closed') || panel.element.hidden,
+        'panel should close on Escape');
+
+      // Re-open and close with click outside
+      panel.open(mockCase);
+      const backdrop = panel.element.querySelector('.case-backdrop') || panel.element;
+      backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 50));
+
+      assert(panel.element.classList.contains('closed') || panel.element.hidden,
+        'panel should close on click outside');
+
+      document.body.removeChild(panel.element);
+    });
+
+    // ── Test 9 (browser): Follows kommune filter ──
+    await runTest('test_follows_kommune_filter', () => {
+      const panel = createCasePanel();
+      tc.appendChild(panel.element);
+      panel.open(mockCase);
+
+      const text = panel.element.textContent;
+      assert(text.includes('101'), 'should display kommune_id 101');
+    });
+
+    summaryEl.textContent = passed + ' passed, ' + failed + ' failed of ' + (passed + failed) + ' tests';
+    summaryEl.style.color = failed === 0 ? 'var(--positive)' : 'var(--negative)';
+    window.__testResults = { passed, failed, total: passed + failed };
+  </script>
+</body>
+</html>

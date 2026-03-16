@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KMD RegelSim — Konsekvenssimulator</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>KMD RegelSim</h1>
+    <p class="subtitle">Konsekvenssimulator for regelændringer</p>
+  </header>
+
+  <main class="dashboard">
+    <section class="stats-panel" aria-label="Nøgletal"></section>
+
+    <section class="slider-panel" aria-label="Parametre">
+      <h2>Parametre</h2>
+    </section>
+
+    <section class="histogram-panel" aria-label="Fordeling">
+      <h2>Udgiftsfordeling</h2>
+      <svg class="histogram" role="img" aria-label="Histogram over udgiftsfordeling"></svg>
+    </section>
+
+    <section class="affected-panel" aria-label="Mest påvirkede">
+      <h2>Top 10 mest påvirkede</h2>
+      <ol class="affected-list"></ol>
+    </section>
+
+    <section class="segment-panel" aria-label="Segmentering">
+      <h2>Per husstandstype</h2>
+      <table class="segment-table">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <div class="kommune-filter" aria-label="Aktivt kommune-filter" hidden>
+      <span class="kommune-badge"></span>
+      <button class="kommune-reset" aria-label="Nulstil kommune-filter">✕</button>
+    </div>
+  </main>
+
+  <script type="module" src="bridge.js"></script>
+  <script type="module" src="dashboard.js"></script>
+</body>
+</html>

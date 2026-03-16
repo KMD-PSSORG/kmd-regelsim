@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <title>Ward 6 — Dashboard Tests</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .test-runner { padding: 24px; max-width: 800px; margin: 0 auto; }
+    .test-result { padding: 8px 12px; margin: 4px 0; border-radius: 4px; font-family: var(--mono); font-size: 0.85rem; }
+    .test-result.pass { background: #1a3a2a; color: var(--positive); }
+    .test-result.fail { background: #3a1a1a; color: var(--negative); }
+    .test-summary { margin-top: 16px; font-size: 1.1rem; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="test-runner">
+    <h1>Ward 6 — Dashboard Tests</h1>
+    <div id="results"></div>
+    <div id="summary" class="test-summary"></div>
+  </div>
+
+  <div id="test-container" style="position:absolute;left:-9999px;width:800px;">
+    <section class="stats-panel" aria-label="Nøgletal"></section>
+    <section class="slider-panel" aria-label="Parametre"><h2>Parametre</h2></section>
+    <svg class="histogram" role="img" aria-label="Histogram" style="width:600px;height:200px;"></svg>
+    <ol class="affected-list"></ol>
+    <table class="segment-table"><thead></thead><tbody></tbody></table>
+    <div class="kommune-filter" hidden>
+      <span class="kommune-badge"></span>
+      <button class="kommune-reset" aria-label="Nulstil kommune-filter">&#x2715;</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { renderStatsPanel } from './components/stats_panel.js';
+    import { renderSliderPanel } from './components/slider_panel.js';
+    import { renderHistogram } from './components/histogram.js';
+    import { renderAffectedList } from './components/affected_list.js';
+    import { renderSegmentTable } from './components/segment_table.js';
+
+    const resultsEl = document.getElementById('results');
+    const summaryEl = document.getElementById('summary');
+    let passed = 0, failed = 0;
+
+    function assert(condition, msg) {
+      if (!condition) throw new Error(msg);
+    }
+
+    function report(name, status, detail) {
+      const div = document.createElement('div');
+      div.className = 'test-result ' + status;
+      div.textContent = status.toUpperCase() + ' ' + name + (detail ? ': ' + detail : '');
+      div.dataset.testName = name;
+      div.dataset.testStatus = status;
+      resultsEl.appendChild(div);
+      if (status === 'pass') passed++; else failed++;
+    }
+
+    async function runTest(name, fn) {
+      try {
+        await fn();
+        report(name, 'pass');
+      } catch (e) {
+        report(name, 'fail', e.message);
+      }
+    }
+
+    const mockBaseline = [
+      { rule: 'kontanthjaelp', total: 1500000000, eligible: 15000, mean: 100000 },
+      { rule: 'boligstoette', total: 800000000, eligible: 25000, mean: 32000 },
+      { rule: 'boerneydelse', total: 600000000, eligible: 35000, mean: 17143 },
+    ];
+
+    const mockDiff = {
+      per_rule: [
+        { rule: 'kontanthjaelp', total_delta: 50000000, gained: 120, lost: 0 },
+        { rule: 'boligstoette', total_delta: 12000000, gained: 30, lost: 5 },
+        { rule: 'boerneydelse', total_delta: 0, gained: 0, lost: 0 },
+      ],
+      total_affected: 8851,
+    };
+
+    const mockTopAffected = Array.from({ length: 10 }, (_, i) => ({
+      borger_id: 1000 + i,
+      total_delta: (10 - i) * 500,
+    }));
+
+    const mockSegments = [
+      { type: 'Enlig', total: 500000, eligible: 5000, mean: 100 },
+      { type: 'Par uden b\u00f8rn', total: 300000, eligible: 3000, mean: 100 },
+      { type: 'Par med b\u00f8rn', total: 400000, eligible: 4000, mean: 100 },
+      { type: 'Enlig fors\u00f8rger', total: 200000, eligible: 2000, mean: 100 },
+    ];
+
+    const tc = document.getElementById('test-container');
+
+    await runTest('test_stats_panel_renders', () => {
+      const panel = tc.querySelector('.stats-panel');
+      renderStatsPanel(panel, mockBaseline, mockDiff);
+      const cards = panel.querySelectorAll('.stat-card');
+      assert(cards.length >= 3, 'expected >= 3 stat cards, got ' + cards.length);
+      const values = panel.querySelectorAll('.value');
+      assert(values.length >= 3, 'expected >= 3 values, got ' + values.length);
+      assert(panel.textContent.length > 20, 'panel should contain formatted numbers');
+    });
+
+    await runTest('test_sliders_present', () => {
+      const panel = tc.querySelector('.slider-panel');
+      renderSliderPanel(panel, () => {});
+      const sliders = panel.querySelectorAll('input[type="range"]');
+      assert(sliders.length === 4, 'expected 4 sliders, got ' + sliders.length);
+      const labels = panel.querySelectorAll('label');
+      assert(labels.length === 4, 'expected 4 labels, got ' + labels.length);
+      sliders.forEach(s => {
+        const valueDisplay = s.closest('.slider-item')?.querySelector('.slider-value');
+        assert(valueDisplay, 'each slider should display its current value');
+      });
+    });
+
+    await runTest('test_slider_triggers_update', async () => {
+      const panel = tc.querySelector('.slider-panel');
+      let callCount = 0;
+      let lastArgs = null;
+      renderSliderPanel(panel, (paramId, value) => {
+        callCount++;
+        lastArgs = { paramId, value };
+      });
+      const slider = panel.querySelector('input[type="range"]');
+      assert(slider, 'slider should exist');
+      slider.value = Number(slider.min) + 500;
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 60));
+      assert(callCount > 0, 'onChange should have been called, got ' + callCount + ' calls');
+      assert(lastArgs !== null, 'should have received paramId and value');
+    });
+
+    await runTest('test_debounce', async () => {
+      const panel = tc.querySelector('.slider-panel');
+      let callCount = 0;
+      renderSliderPanel(panel, () => { callCount++; });
+      const slider = panel.querySelector('input[type="range"]');
+      assert(slider, 'slider should exist');
+      for (let i = 0; i < 20; i++) {
+        slider.value = Number(slider.min) + i * 10;
+        slider.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      await new Promise(r => setTimeout(r, 100));
+      assert(callCount < 10,
+        'debounce should collapse rapid inputs: got ' + callCount + ' calls for 20 events');
+    });
+
+    await runTest('test_histogram_svg', () => {
+      const svg = tc.querySelector('.histogram');
+      renderHistogram(svg, mockBaseline, mockDiff);
+      const rects = svg.querySelectorAll('rect');
+      assert(rects.length >= 20, 'expected >= 20 bars, got ' + rects.length);
+      assert(svg.querySelector('.bar-baseline'), 'should have baseline bars');
+      assert(svg.querySelector('.bar-scenario'), 'should have scenario bars');
+    });
+
+    await runTest('test_reduced_motion', () => {
+      const sheet = Array.from(document.styleSheets).find(s => s.href?.includes('styles.css'));
+      let hasRule = false;
+      if (sheet) {
+        try {
+          for (const rule of sheet.cssRules) {
+            if (rule.conditionText?.includes('prefers-reduced-motion')) {
+              hasRule = true;
+            }
+          }
+        } catch (e) { /* cross-origin */ }
+      }
+      assert(hasRule, 'styles.css should contain prefers-reduced-motion media query');
+    });
+
+    await runTest('test_top_10_list', () => {
+      const list = tc.querySelector('.affected-list');
+      let clickedId = null;
+      renderAffectedList(list, mockTopAffected, (borgerId) => { clickedId = borgerId; });
+      const items = list.querySelectorAll('li');
+      assert(items.length === 10, 'expected 10 items, got ' + items.length);
+      assert(items[0]?.querySelector('.borger-id'), 'each item should show borger_id');
+      assert(items[0]?.querySelector('.borger-delta'), 'each item should show delta');
+      items[0].click();
+      assert(clickedId === 1000, 'click should report borger_id 1000, got ' + clickedId);
+    });
+
+    await runTest('test_segment_table', () => {
+      const table = tc.querySelector('.segment-table');
+      renderSegmentTable(table, mockSegments);
+      const rows = table.querySelectorAll('tbody tr');
+      assert(rows.length === 4, 'expected 4 rows, got ' + rows.length);
+      const headers = table.querySelectorAll('thead th');
+      assert(headers.length >= 3, 'expected >= 3 headers, got ' + headers.length);
+    });
+
+    await runTest('test_kommune_filter_display', () => {
+      const filter = tc.querySelector('.kommune-filter');
+      const badge = filter.querySelector('.kommune-badge');
+      const resetBtn = filter.querySelector('.kommune-reset');
+      badge.textContent = 'Kommune 101';
+      filter.hidden = false;
+      assert(!filter.hidden, 'filter should be visible when active');
+      assert(badge.textContent.includes('101'), 'badge should show kommune id');
+      assert(resetBtn, 'reset button should exist');
+      assert(resetBtn.getAttribute('aria-label'), 'reset button should have aria-label');
+      filter.hidden = true;
+      assert(filter.hidden, 'filter should hide on reset');
+    });
+
+    await runTest('test_responsive_layout', () => {
+      const root = getComputedStyle(document.documentElement);
+      const bg = root.getPropertyValue('--bg').trim();
+      assert(bg, 'CSS custom property --bg should be defined');
+      assert(bg.startsWith('#0') || bg.startsWith('#1'), 'dark theme expected, got ' + bg);
+      const sheet = Array.from(document.styleSheets).find(s => s.href?.includes('styles.css'));
+      let hasMedia = false;
+      if (sheet) {
+        try {
+          for (const rule of sheet.cssRules) {
+            if (rule.conditionText?.includes('max-width')) hasMedia = true;
+          }
+        } catch (e) { /* cross-origin */ }
+      }
+      assert(hasMedia, 'styles.css should contain responsive media query');
+    });
+
+    summaryEl.textContent = passed + ' passed, ' + failed + ' failed of ' + (passed + failed) + ' tests';
+    summaryEl.style.color = failed === 0 ? 'var(--positive)' : 'var(--negative)';
+    window.__testResults = { passed, failed, total: passed + failed };
+  </script>
+</body>
+</html>

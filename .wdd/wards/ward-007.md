@@ -3,12 +3,12 @@ ward: 7
 revision: null
 name: "Case Explainer View"
 epic: "Bridge og Render Layer"
-status: "planned"
+status: "complete"
 dependencies: [5, 6]
 layer: "mixed"
 estimated_tests: 9
 created: "2026-03-16"
-completed: null
+completed: "2026-03-16"
 ---
 # Ward 007: Case Explainer View
 
