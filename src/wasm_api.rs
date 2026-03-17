@@ -22,6 +22,17 @@ const SEED: u64 = 42;
 const COUNT: usize = 100_000;
 const RULE_IDS: [RuleId; 3] = [RuleId::Kontanthjaelp, RuleId::Boligstoette, RuleId::BoerneYdelse];
 
+// ── Error response for public API ──
+
+#[derive(Serialize)]
+pub struct ErrorResponse {
+    pub error: String,
+}
+
+fn json_error(msg: &str) -> String {
+    serde_json::to_string(&ErrorResponse { error: msg.to_string() }).unwrap()
+}
+
 // ── JSON response types (public bridge surface) ──
 
 #[derive(Serialize)]
@@ -175,7 +186,10 @@ impl Engine {
     }
 
     pub fn apply_scenario(&mut self, param_id: u8, value: f64) -> String {
-        let pid = parse_param_id(param_id).expect("invalid param_id");
+        let pid = match parse_param_id(param_id) {
+            Some(p) => p,
+            None => return json_error(&format!("invalid param_id: {}", param_id)),
+        };
         let scenario = Scenario::new(&self.params, pid, value);
         let dirty = compute_dirty_set(&scenario.overrides, &self.mapping, &self.graph, &self.rules);
         let scenario_result = incremental_evaluate(
@@ -209,7 +223,10 @@ impl Engine {
     }
 
     pub fn get_top_affected(&self, n: usize) -> String {
-        let diff = self.last_diff.as_ref().expect("call apply_scenario first");
+        let diff = match self.last_diff.as_ref() {
+            Some(d) => d,
+            None => return json_error("no scenario applied yet — call apply_scenario first"),
+        };
         let top: Vec<AffectedBorgerJson> = diff.top_affected.iter().take(n).map(|a| {
             AffectedBorgerJson {
                 borger_id: a.borger_id,
@@ -220,8 +237,10 @@ impl Engine {
     }
 
     pub fn get_case_detail(&self, borger_id: u32) -> String {
-        let idx = self.store.find_by_id(borger_id)
-            .unwrap_or_else(|| panic!("borger_id {} not found", borger_id));
+        let idx = match self.store.find_by_id(borger_id) {
+            Some(i) => i,
+            None => return json_error(&format!("borger_id {} not found", borger_id)),
+        };
         let view = self.store.view(idx);
         let result = &self.baseline.borger_results[idx];
 
@@ -245,7 +264,10 @@ impl Engine {
     }
 
     pub fn get_geo_data(&self) -> String {
-        let diff = self.last_diff.as_ref().expect("call apply_scenario first");
+        let diff = match self.last_diff.as_ref() {
+            Some(d) => d,
+            None => return json_error("no scenario applied yet — call apply_scenario first"),
+        };
         let entries = build_geo_entries(&self.kommune_populations, diff);
         let response = GeoResponse {
             kommuner: entries.iter().map(|e| KommuneGeoJson {

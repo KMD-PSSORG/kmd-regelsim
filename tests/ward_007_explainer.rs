@@ -40,7 +40,7 @@ fn test_case_detail_by_borger_id() {
 
     let explanation = explain_case(
         &store, &rules, &graph, &params, None, &baseline, None, 1, 0.03,
-    );
+    ).unwrap();
 
     assert_eq!(explanation.borger_id, 1);
     assert_eq!(explanation.rules.len(), 3, "should have trace for all 3 rules");
@@ -67,7 +67,7 @@ fn test_human_readable_explanations() {
 
     let explanation = explain_case(
         &store, &rules, &graph, &params, None, &baseline, None, borger_id, 0.03,
-    );
+    ).unwrap();
 
     let kh = explanation.rules.iter().find(|r| r.rule == "kontanthjaelp").unwrap();
     assert!(kh.eligible, "borger should be eligible for kontanthjaelp");
@@ -103,7 +103,7 @@ fn test_diff_view() {
         &store, &rules, &graph, &params,
         Some(&scenario.params), &baseline, Some(&scenario_result),
         borger_id, 0.03,
-    );
+    ).unwrap();
 
     let kh = explanation.rules.iter().find(|r| r.rule == "kontanthjaelp").unwrap();
     assert!(kh.delta.abs() > 0.01, "delta should be non-zero for affected borger");
@@ -135,7 +135,7 @@ fn test_highlight_largest_delta() {
         &store, &rules, &graph, &params,
         Some(&scenario.params), &baseline, Some(&scenario_result),
         borger_id, 0.03,
-    );
+    ).unwrap();
 
     // The rule with the largest |delta| should be identifiable
     let max_delta_rule = explanation.rules.iter()
@@ -156,13 +156,13 @@ fn test_outlier_configurable_threshold() {
     // With a very wide threshold (50%), almost every eligible borger should get warnings
     let wide = explain_case(
         &store, &rules, &graph, &params, None, &baseline, None, 1, 0.50,
-    );
+    ).unwrap();
     let wide_warnings: usize = wide.rules.iter().map(|r| r.threshold_warnings.len()).sum();
 
     // With a very narrow threshold (0.1%), few should get warnings
     let narrow = explain_case(
         &store, &rules, &graph, &params, None, &baseline, None, 1, 0.001,
-    );
+    ).unwrap();
     let narrow_warnings: usize = narrow.rules.iter().map(|r| r.threshold_warnings.len()).sum();
 
     // Wide threshold should produce at least as many warnings as narrow

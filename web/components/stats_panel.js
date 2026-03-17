@@ -7,6 +7,7 @@ function clearChildren(el) {
 
 export function renderStatsPanel(container, baseline, scenarioDiff) {
   clearChildren(container);
+  container.setAttribute('aria-live', 'polite');
 
   for (const rule of baseline) {
     const card = document.createElement('div');

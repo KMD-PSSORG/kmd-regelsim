@@ -45,9 +45,9 @@ pub fn explain_case(
     scenario_result: Option<&BatchResult>,
     borger_id: u32,
     threshold_pct: f64,
-) -> CaseExplanation {
+) -> Result<CaseExplanation, String> {
     let idx = store.find_by_id(borger_id)
-        .unwrap_or_else(|| panic!("borger_id {} not found", borger_id));
+        .ok_or_else(|| format!("borger_id {} not found", borger_id))?;
     let view = store.view(idx);
 
     let base_compact = &baseline_result.borger_results[idx];
@@ -85,7 +85,7 @@ pub fn explain_case(
         })
         .collect();
 
-    CaseExplanation {
+    Ok(CaseExplanation {
         borger_id,
         alder: view.alder,
         kommune_id: view.kommune_id,
@@ -96,7 +96,7 @@ pub fn explain_case(
         boligareal: view.boligareal,
         antal_boern: view.antal_boern,
         rules: rule_explanations,
-    }
+    })
 }
 
 fn generate_explanation(

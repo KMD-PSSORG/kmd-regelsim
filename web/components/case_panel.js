@@ -38,10 +38,16 @@ export function createCasePanel() {
   overlay.appendChild(backdrop);
   overlay.appendChild(panel);
 
+  let previousFocus = null;
+
   function close() {
     overlay.classList.remove('open');
     overlay.classList.add('closed');
     overlay.hidden = true;
+    if (previousFocus && previousFocus.focus) {
+      previousFocus.focus();
+      previousFocus = null;
+    }
   }
 
   backdrop.addEventListener('click', close);
@@ -50,6 +56,7 @@ export function createCasePanel() {
   });
 
   function open(caseData) {
+    previousFocus = document.activeElement;
     clearChildren(panel);
     overlay.classList.remove('closed');
     overlay.classList.add('open');
@@ -150,7 +157,29 @@ export function createCasePanel() {
       rulesSection.appendChild(card);
     }
     panel.appendChild(rulesSection);
+
+    requestAnimationFrame(() => {
+      const first = panel.querySelector('button, [tabindex="0"]');
+      if (first) first.focus();
+    });
   }
+
+  overlay.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab' || overlay.hidden) return;
+    const focusable = Array.from(panel.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex="0"]'
+    ));
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  });
 
   return { open, close, element: overlay };
 }

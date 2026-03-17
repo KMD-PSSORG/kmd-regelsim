@@ -3,12 +3,12 @@ ward: 10
 revision: null
 name: "Accessibility og Error Handling"
 epic: "Geo View og Performance"
-status: "planned"
+status: "complete"
 dependencies: [6, 7, 8]
 layer: "javascript"
 estimated_tests: 7
 created: "2026-03-16"
-completed: null
+completed: "2026-03-17"
 ---
 # Ward 010: Accessibility og Error Handling
 

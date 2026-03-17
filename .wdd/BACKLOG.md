@@ -21,15 +21,10 @@ Issues identified in post-review (GPT 5.4 code review, Ward 1–7).
 2. New Rust function in `src/batch/` for bucketing amounts
 3. `histogram.js` updated to consume real data
 
-### BL-003: Panic/unwrap/expect → Result/JSON error responses in boundary layer
+### BL-003: Panic/unwrap/expect → Result/JSON error responses in boundary layer — **CLOSED (Ward 10)**
 **Source:** Fix 5 (Ward 10 scope)
 **Files:** `src/wasm_api.rs`, `src/explainer/case_explainer.rs`
-**Problem:** Several places use `expect()`, `unwrap()`, and `panic!()` in public-facing API, violating the "Result over panic" principle.
-**Instances:**
-- `wasm_api.rs`: `expect("call apply_scenario first")` in get_top_affected, get_geo_data
-- `wasm_api.rs`: `expect("invalid param_id")` in apply_scenario
-- `case_explainer.rs`: `panic!("borger_id {} not found")` in explain_case
-**Fix:** Replace with JSON error responses.
+**Resolution:** All boundary-layer panics replaced with `json_error()` helper returning `{"error":"..."}`. `explain_case` returns `Result<CaseExplanation, String>`. Verified by `test_error_responses_no_panic`.
 
 ## P2 — Ward 9 (Performance Tuning)
 

@@ -154,6 +154,9 @@ export function createKommuneKort(container) {
     path.setAttribute('fill', '#555');
     path.setAttribute('stroke', '#333');
     path.setAttribute('stroke-width', '0.5');
+    path.setAttribute('tabindex', '0');
+    path.setAttribute('role', 'button');
+    path.setAttribute('aria-label', (KOMMUNE_NAMES[id] || 'Kommune ' + id));
     path.style.cursor = 'pointer';
     path.style.transition = 'fill 0.15s ease';
 
@@ -179,6 +182,13 @@ export function createKommuneKort(container) {
         clearFilterInternal();
       } else {
         setFilterInternal(id);
+      }
+    });
+
+    path.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        path.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       }
     });
 

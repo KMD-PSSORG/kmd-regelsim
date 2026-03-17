@@ -1,7 +1,7 @@
 # Progress — kmd-regelsim
 
 ## Summary
-10 of 13 Wards complete · 94 estimated tests · 0 blocked
+11 of 13 Wards complete · 94 estimated tests · 0 blocked
 
 ## Ward Status
 | Ward | Name | Tests | Status | Date |
@@ -16,7 +16,7 @@
 | 7 | Case Explainer View | 9 | ✅ Complete | 2026-03-16 |
 | 8 | Geo View Kommunekort | 9 | ✅ Complete | 2026-03-17 |
 | 9 | Performance Tuning og 500K Stretch | 9 | ✅ Complete | 2026-03-17 |
-| 10 | Accessibility og Error Handling | 7 | 📋 Planned | - |
+| 10 | Accessibility og Error Handling | 7 | ✅ Complete | 2026-03-17 |
 | 11 | Demo Orchestration | 7 | 📋 Planned | - |
 | 12 | Dokumentation og Video | 4 | 📋 Planned | - |
 
