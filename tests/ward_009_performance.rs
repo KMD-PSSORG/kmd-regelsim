@@ -69,7 +69,7 @@ fn test_incremental_100k_15ms() {
     let params = RuleParams::default();
     let mapping = ParamRuleMapping::new();
     let baseline = batch_evaluate(&store, &rules, &graph, &params);
-    let scenario = Scenario::new(&params, ParamId::KontanthjaelpBasis, 13_050.0);
+    let scenario = Scenario::new(&params, ParamId::KontanthjaelpBasisEnlig, 13_050.0);
     let dirty = compute_dirty_set(&scenario.overrides, &mapping, &graph, &rules);
 
     // Warmup
@@ -125,7 +125,7 @@ fn test_incremental_500k_80ms() {
     let params = RuleParams::default();
     let mapping = ParamRuleMapping::new();
     let baseline = batch_evaluate(&store, &rules, &graph, &params);
-    let scenario = Scenario::new(&params, ParamId::KontanthjaelpBasis, 13_050.0);
+    let scenario = Scenario::new(&params, ParamId::KontanthjaelpBasisEnlig, 13_050.0);
     let dirty = compute_dirty_set(&scenario.overrides, &mapping, &graph, &rules);
 
     let _ = incremental_evaluate(&store, &rules, &graph, &baseline, &scenario.params, &dirty);

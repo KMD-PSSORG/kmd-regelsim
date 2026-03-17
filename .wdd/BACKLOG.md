@@ -4,22 +4,13 @@ Issues identified in post-review (GPT 5.4 code review, Ward 1–7).
 
 ## P1 — Before Ward 11 (Demo)
 
-### BL-001: Split KontanthjaelpBasis i Enlig/Par
+### BL-001: Split KontanthjaelpBasis i Enlig/Par — **CLOSED**
 **Source:** Fix 2 (Ward 4 scope)
-**Files:** `src/scenario/param_mapping.rs`, `src/scenario/scenario.rs`, `web/components/slider_panel.js`
-**Problem:** `ParamId::KontanthjaelpBasis` only changes `kontanthjaelp_basis_enlig`. The name implies a general base rate, but only the single-person rate changes. The UI slider will mislead.
-**Options:**
-- **A (recommended):** Split into `KontanthjaelpBasisEnlig` + `KontanthjaelpBasisPar`. Update `apply_override()`, `ParamRuleMapping`, slider config, Ward 4 + Ward 6 tests.
-- **B:** Introduce a "shared rate" abstraction that scales both proportionally.
+**Resolution:** Option A implemented. `ParamId::KontanthjaelpBasisEnlig` (id=0) + `KontanthjaelpBasisPar` (id=4). Updated `apply_override()`, `ParamRuleMapping`, `parse_param_id`, slider config (5 sliders), Ward 4/7/9 tests. Default: enlig=12.550, par=8.710.
 
-### BL-002: Histogram skal bruge reelle distribution-buckets
+### BL-002: Histogram real distribution buckets — **CLOSED**
 **Source:** Fix 3 (Ward 6 scope)
-**Files:** `web/components/histogram.js`, `src/batch/`, `src/wasm_api.rs`
-**Problem:** `buildBuckets()` uses sine-based pseudo-visualization of aggregate totals — not a real distribution of citizen benefits. A sharp reviewer will spot it immediately.
-**Fix requires:**
-1. New WASM API: `get_histogram_data(rule_id, bucket_count)` returning actual frequency buckets from `BatchResult.borger_results`
-2. New Rust function in `src/batch/` for bucketing amounts
-3. `histogram.js` updated to consume real data
+**Resolution:** `src/batch/histogram.rs` computes real frequency buckets from `BatchResult.borger_results`. WASM API `get_histogram_data(rule_idx, bucket_count)` exposed. `histogram.js` rewritten to consume `{rule, buckets: [{min, max, count}]}`. Sine-based pseudo-visualization removed. Verified by `test_histogram_real_distribution`.
 
 ### BL-003: Panic/unwrap/expect → Result/JSON error responses in boundary layer — **CLOSED (Ward 10)**
 **Source:** Fix 5 (Ward 10 scope)

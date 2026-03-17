@@ -176,3 +176,32 @@ fn test_filtered_stats_uses_scenario() {
         "filtered stats should reflect scenario, not baseline. base={}, scen={}", base_kh, scen_kh
     );
 }
+
+// ── Test 8: Histogram returns real distribution buckets ──
+#[test]
+fn test_histogram_real_distribution() {
+    let engine = Engine::new();
+    let _ = engine.init();
+
+    let hist_json = engine.get_histogram_data(0, 20);
+    let hist: serde_json::Value = serde_json::from_str(&hist_json).unwrap();
+
+    assert_eq!(hist["rule"].as_str().unwrap(), "kontanthjaelp");
+    let buckets = hist["buckets"].as_array().unwrap();
+    assert_eq!(buckets.len(), 20, "should have 20 buckets");
+
+    let total_count: u64 = buckets.iter().map(|b| b["count"].as_u64().unwrap()).sum();
+    assert!(total_count > 0, "should have eligible citizens in histogram");
+
+    for b in buckets {
+        assert!(b["min"].is_number(), "bucket should have min");
+        assert!(b["max"].is_number(), "bucket should have max");
+        assert!(b["count"].is_number(), "bucket should have count");
+        assert!(b["max"].as_f64().unwrap() >= b["min"].as_f64().unwrap(),
+            "max should be >= min");
+    }
+
+    let first_min = buckets[0]["min"].as_f64().unwrap();
+    let last_max = buckets.last().unwrap()["max"].as_f64().unwrap();
+    assert!(last_max > first_min, "range should be non-trivial");
+}

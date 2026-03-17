@@ -11,6 +11,7 @@ use crate::rule_engine::{Rule, RuleId, RuleParams};
 use crate::rules::boerne_ydelse::BoerneYdelse;
 use crate::rules::boligstoette::Boligstoette;
 use crate::rules::kontanthjaelp::Kontanthjaelp;
+use crate::batch::histogram::compute_histogram;
 use crate::geo::geo_aggregator::{build_geo_entries, compute_kommune_populations};
 use crate::scenario::diff::{compute_diff, DiffResult};
 use crate::scenario::incremental::{compute_dirty_set, incremental_evaluate};
@@ -281,6 +282,18 @@ impl Engine {
         serde_json::to_string(&response).unwrap()
     }
 
+    pub fn get_histogram_data(&self, rule_idx: u8, bucket_count: usize) -> String {
+        let rule_id = match rule_idx {
+            0 => RuleId::Kontanthjaelp,
+            1 => RuleId::Boligstoette,
+            2 => RuleId::BoerneYdelse,
+            _ => return json_error(&format!("invalid rule_idx: {}", rule_idx)),
+        };
+        let active = self.last_scenario_result.as_ref().unwrap_or(&self.baseline);
+        let data = compute_histogram(active, rule_id, bucket_count);
+        serde_json::to_string(&data).unwrap()
+    }
+
     pub fn get_filtered_stats(&self, kommune_id: Option<u8>) -> String {
         let active_result = self.last_scenario_result.as_ref().unwrap_or(&self.baseline);
         let mut totals = [0.0_f64; 3];
@@ -352,10 +365,11 @@ fn beskaeftigelse_name(b: Beskaeftigelsesstatus) -> &'static str {
 
 fn parse_param_id(id: u8) -> Option<ParamId> {
     match id {
-        0 => Some(ParamId::KontanthjaelpBasis),
+        0 => Some(ParamId::KontanthjaelpBasisEnlig),
         1 => Some(ParamId::Forsoergertillaeg),
         2 => Some(ParamId::BoligstoetteGraense),
         3 => Some(ParamId::BoerneYdelseAftrapning),
+        4 => Some(ParamId::KontanthjaelpBasisPar),
         _ => None,
     }
 }
@@ -416,5 +430,12 @@ pub fn wasm_get_filtered_stats(kommune_id: i16) -> String {
     let kid = if kommune_id < 0 { None } else { Some(kommune_id as u8) };
     WASM_ENGINE.with(|e| {
         e.borrow().as_ref().expect("call wasm_init first").get_filtered_stats(kid)
+    })
+}
+
+#[wasm_bindgen]
+pub fn wasm_get_histogram_data(rule_idx: u8, bucket_count: usize) -> String {
+    WASM_ENGINE.with(|e| {
+        e.borrow().as_ref().expect("call wasm_init first").get_histogram_data(rule_idx, bucket_count)
     })
 }

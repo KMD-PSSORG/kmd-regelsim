@@ -4,7 +4,8 @@ use crate::rule_engine::RuleId;
 /// Identifies a slider parameter that can be changed in a scenario.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ParamId {
-    KontanthjaelpBasis,
+    KontanthjaelpBasisEnlig,
+    KontanthjaelpBasisPar,
     Forsoergertillaeg,
     BoligstoetteGraense,
     BoerneYdelseAftrapning,
@@ -20,7 +21,8 @@ pub struct ParamRuleMapping {
 impl ParamRuleMapping {
     pub fn new() -> Self {
         let mut mapping = HashMap::new();
-        mapping.insert(ParamId::KontanthjaelpBasis, vec![RuleId::Kontanthjaelp]);
+        mapping.insert(ParamId::KontanthjaelpBasisEnlig, vec![RuleId::Kontanthjaelp]);
+        mapping.insert(ParamId::KontanthjaelpBasisPar, vec![RuleId::Kontanthjaelp]);
         mapping.insert(ParamId::Forsoergertillaeg, vec![RuleId::Kontanthjaelp]);
         mapping.insert(ParamId::BoligstoetteGraense, vec![RuleId::Boligstoette]);
         mapping.insert(ParamId::BoerneYdelseAftrapning, vec![RuleId::BoerneYdelse]);

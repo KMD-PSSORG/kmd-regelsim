@@ -35,11 +35,11 @@ fn setup() -> (
 #[test]
 fn test_create_scenario() {
     let params = RuleParams::default();
-    let scenario = Scenario::new(&params, ParamId::KontanthjaelpBasis, 13_050.0);
+    let scenario = Scenario::new(&params, ParamId::KontanthjaelpBasisEnlig, 13_050.0);
 
     assert_eq!(scenario.params.kontanthjaelp_basis_enlig, 13_050.0);
     assert_eq!(scenario.overrides.len(), 1);
-    assert_eq!(scenario.overrides[0].0, ParamId::KontanthjaelpBasis);
+    assert_eq!(scenario.overrides[0].0, ParamId::KontanthjaelpBasisEnlig);
 
     // Other params unchanged
     assert_eq!(scenario.params.kontanthjaelp_basis_par, params.kontanthjaelp_basis_par);
@@ -51,8 +51,11 @@ fn test_create_scenario() {
 fn test_param_rule_mapping() {
     let mapping = ParamRuleMapping::new();
 
-    // KontanthjaelpBasis → Kontanthjaelp
-    assert_eq!(mapping.affected_roots(ParamId::KontanthjaelpBasis), &[RuleId::Kontanthjaelp]);
+    // KontanthjaelpBasisEnlig → Kontanthjaelp
+    assert_eq!(mapping.affected_roots(ParamId::KontanthjaelpBasisEnlig), &[RuleId::Kontanthjaelp]);
+
+    // KontanthjaelpBasisPar → Kontanthjaelp
+    assert_eq!(mapping.affected_roots(ParamId::KontanthjaelpBasisPar), &[RuleId::Kontanthjaelp]);
 
     // Forsoergertillaeg → Kontanthjaelp
     assert_eq!(mapping.affected_roots(ParamId::Forsoergertillaeg), &[RuleId::Kontanthjaelp]);
@@ -71,7 +74,7 @@ fn test_dirty_propagation() {
     let mapping = ParamRuleMapping::new();
 
     // Changing kontanthjaelp basis → kontanthjaelp dirty → boligstoette downstream dirty
-    let overrides = vec![(ParamId::KontanthjaelpBasis, 13_050.0)];
+    let overrides = vec![(ParamId::KontanthjaelpBasisEnlig, 13_050.0)];
     let dirty = compute_dirty_set(&overrides, &mapping, &graph, &rules);
 
     assert!(dirty.contains(&RuleId::Kontanthjaelp), "kontanthjaelp should be dirty");
@@ -86,7 +89,7 @@ fn test_only_dirty_reevaluated() {
     let mapping = ParamRuleMapping::new();
     let baseline = batch_evaluate(&store, &rules, &graph, &params);
 
-    let scenario = Scenario::new(&params, ParamId::KontanthjaelpBasis, 13_050.0);
+    let scenario = Scenario::new(&params, ParamId::KontanthjaelpBasisEnlig, 13_050.0);
     let dirty = compute_dirty_set(&scenario.overrides, &mapping, &graph, &rules);
 
     let scenario_result = incremental_evaluate(
@@ -119,7 +122,7 @@ fn test_incremental_speedup() {
     let mapping = ParamRuleMapping::new();
     let baseline = batch_evaluate(&store, &rules, &graph, &params);
 
-    let scenario = Scenario::new(&params, ParamId::KontanthjaelpBasis, 13_050.0);
+    let scenario = Scenario::new(&params, ParamId::KontanthjaelpBasisEnlig, 13_050.0);
     let dirty = compute_dirty_set(&scenario.overrides, &mapping, &graph, &rules);
 
     // Full re-eval
@@ -148,7 +151,7 @@ fn test_diff_eligibility() {
     let mapping = ParamRuleMapping::new();
     let baseline = batch_evaluate(&store, &rules, &graph, &params);
 
-    let scenario = Scenario::new(&params, ParamId::KontanthjaelpBasis, 13_050.0);
+    let scenario = Scenario::new(&params, ParamId::KontanthjaelpBasisEnlig, 13_050.0);
     let dirty = compute_dirty_set(&scenario.overrides, &mapping, &graph, &rules);
     let scenario_result = incremental_evaluate(
         &store, &rules, &graph, &baseline, &scenario.params, &dirty,
@@ -175,7 +178,7 @@ fn test_diff_per_segment() {
     let mapping = ParamRuleMapping::new();
     let baseline = batch_evaluate(&store, &rules, &graph, &params);
 
-    let scenario = Scenario::new(&params, ParamId::KontanthjaelpBasis, 13_050.0);
+    let scenario = Scenario::new(&params, ParamId::KontanthjaelpBasisEnlig, 13_050.0);
     let dirty = compute_dirty_set(&scenario.overrides, &mapping, &graph, &rules);
     let scenario_result = incremental_evaluate(
         &store, &rules, &graph, &baseline, &scenario.params, &dirty,
@@ -202,7 +205,7 @@ fn test_top_n_with_borger_id() {
     let mapping = ParamRuleMapping::new();
     let baseline = batch_evaluate(&store, &rules, &graph, &params);
 
-    let scenario = Scenario::new(&params, ParamId::KontanthjaelpBasis, 13_050.0);
+    let scenario = Scenario::new(&params, ParamId::KontanthjaelpBasisEnlig, 13_050.0);
     let dirty = compute_dirty_set(&scenario.overrides, &mapping, &graph, &rules);
     let scenario_result = incremental_evaluate(
         &store, &rules, &graph, &baseline, &scenario.params, &dirty,
@@ -238,7 +241,7 @@ fn test_end_to_end_100ms() {
 
     let start = std::time::Instant::now();
 
-    let scenario = Scenario::new(&params, ParamId::KontanthjaelpBasis, 13_050.0);
+    let scenario = Scenario::new(&params, ParamId::KontanthjaelpBasisEnlig, 13_050.0);
     let dirty = compute_dirty_set(&scenario.overrides, &mapping, &graph, &rules);
     let scenario_result = incremental_evaluate(
         &store, &rules, &graph, &baseline, &scenario.params, &dirty,

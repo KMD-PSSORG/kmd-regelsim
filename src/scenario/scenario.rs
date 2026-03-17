@@ -25,7 +25,8 @@ impl Scenario {
 
 fn apply_override(params: &mut RuleParams, param_id: ParamId, value: f64) {
     match param_id {
-        ParamId::KontanthjaelpBasis => params.kontanthjaelp_basis_enlig = value,
+        ParamId::KontanthjaelpBasisEnlig => params.kontanthjaelp_basis_enlig = value,
+        ParamId::KontanthjaelpBasisPar => params.kontanthjaelp_basis_par = value,
         ParamId::Forsoergertillaeg => params.forsoergertillaeg_per_barn = value,
         ParamId::BoligstoetteGraense => params.boligstoette_grænse = value,
         ParamId::BoerneYdelseAftrapning => params.boerneydelse_aftrapning_grænse = value,

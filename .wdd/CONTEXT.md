@@ -1,11 +1,11 @@
 # Context — kmd-regelsim
 
 ## Last Updated
-2026-03-17 — Ward 10 Gold (Accessibility + Error Handling)
+2026-03-17 — Ward 10 complete + BL-001/BL-002 closed. Ready for Ward 11.
 
 ## Current State
-Wards 1–10 complete + Ward 5b (post-review fix). Ward 10 Gold — all tests passing.
-11 of 13 wards complete. 54 Rust tests + 29 browser tests = 83 total.
+Wards 1–10 complete + Ward 5b. All 4 backlog items closed.
+11 of 13 wards complete. 55 Rust tests + 29 browser tests = 84 total.
 Test HTML files in `web/__tests__/` with dynamic module imports for cache-busting.
 
 ## Architecture Decisions Made
@@ -28,6 +28,8 @@ Test HTML files in `web/__tests__/` with dynamic module imports for cache-bustin
 | Focus trap + restore | Case panel fanger Tab, gendanner fokus ved luk | 10 |
 | aria-live on stats | Screen readers annoncerer ændringer dynamisk | 10 |
 | Keyboard-accessible SVG paths | tabindex=0, role=button, Enter/Space handler på kommune-paths | 10 |
+| ParamId split enlig/par | Separate sliders for enlig (12.550) og par (8.710) basissatser | BL-001 |
+| Histogram fra engine | Real frequency-buckets via `compute_histogram`, ikke pseudo-sinus | BL-002 |
 
 ## Verified Performance (Release, Ward 9)
 | Metric | Target (100K) | Measured | Target (500K) | Measured |
@@ -50,13 +52,11 @@ Test HTML files in `web/__tests__/` with dynamic module imports for cache-bustin
 ## Known Limitations / Backlog
 | ID | Priority | Description | Status |
 |----|----------|-------------|--------|
-| BL-001 | P1 | Split KontanthjaelpBasis into Enlig/Par | Open — before Ward 11 |
-| BL-002 | P1 | Histogram must use real distribution buckets | Open — before Ward 11 |
+| BL-001 | P1 | Split KontanthjaelpBasis into Enlig/Par | **Closed** — pre-Ward 11 |
+| BL-002 | P1 | Histogram real distribution buckets | **Closed** — pre-Ward 11 |
 | BL-003 | P1 | Replace panic/unwrap/expect with Result/JSON errors | **Closed** — Ward 10 |
 | BL-004 | P2 | find_by_id() O(1) | **Closed** — Ward 9 |
 
 ## What Comes Next
-- Ward 10: Awaiting human `wdd complete`
-- BL-001 + BL-002: Fix before Ward 11
 - Ward 11: Demo Orchestration (wasm-pack build, index.html wiring, preview)
 - Ward 12: Documentation
