@@ -10,4 +10,5 @@ pub mod rules;
 pub mod batch;
 pub mod scenario;
 pub mod explainer;
+pub mod geo;
 pub mod wasm_api;

@@ -3,12 +3,12 @@ ward: 8
 revision: null
 name: "Geo View Kommunekort"
 epic: "Geo View og Performance"
-status: "planned"
+status: "complete"
 dependencies: [5, 6]
 layer: "mixed"
 estimated_tests: 9
 created: "2026-03-16"
-completed: null
+completed: "2026-03-17"
 ---
 # Ward 008: Geo View Kommunekort
 

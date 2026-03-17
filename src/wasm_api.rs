@@ -11,6 +11,7 @@ use crate::rule_engine::{Rule, RuleId, RuleParams};
 use crate::rules::boerne_ydelse::BoerneYdelse;
 use crate::rules::boligstoette::Boligstoette;
 use crate::rules::kontanthjaelp::Kontanthjaelp;
+use crate::geo::geo_aggregator::{build_geo_entries, compute_kommune_populations};
 use crate::scenario::diff::{compute_diff, DiffResult};
 use crate::scenario::incremental::{compute_dirty_set, incremental_evaluate};
 use crate::scenario::param_mapping::{ParamId, ParamRuleMapping};
@@ -88,8 +89,17 @@ pub struct CaseRuleJson {
 }
 
 #[derive(Serialize)]
+pub struct KommuneGeoJson {
+    pub kommune_id: u8,
+    pub population: usize,
+    pub total_delta: f64,
+    pub per_capita_delta: f64,
+    pub affected_count: usize,
+}
+
+#[derive(Serialize)]
 pub struct GeoResponse {
-    pub kommuner: Vec<KommuneDiffJson>,
+    pub kommuner: Vec<KommuneGeoJson>,
 }
 
 #[derive(Serialize)]
@@ -108,6 +118,7 @@ pub struct Engine {
     params: RuleParams,
     mapping: ParamRuleMapping,
     baseline: BatchResult,
+    kommune_populations: [usize; 256],
     last_scenario_result: Option<BatchResult>,
     last_diff: Option<DiffResult>,
 }
@@ -125,6 +136,7 @@ impl Engine {
         let params = RuleParams::default();
         let mapping = ParamRuleMapping::new();
         let baseline = batch_evaluate(&store, &rules, &graph, &params);
+        let kommune_populations = compute_kommune_populations(&store);
 
         Self {
             store,
@@ -133,6 +145,7 @@ impl Engine {
             params,
             mapping,
             baseline,
+            kommune_populations,
             last_scenario_result: None,
             last_diff: None,
         }
@@ -233,11 +246,14 @@ impl Engine {
 
     pub fn get_geo_data(&self) -> String {
         let diff = self.last_diff.as_ref().expect("call apply_scenario first");
+        let entries = build_geo_entries(&self.kommune_populations, diff);
         let response = GeoResponse {
-            kommuner: diff.per_kommune.iter().map(|s| KommuneDiffJson {
-                kommune_id: s.kommune_id,
-                total_delta: s.total_delta,
-                affected_count: s.affected_count,
+            kommuner: entries.iter().map(|e| KommuneGeoJson {
+                kommune_id: e.kommune_id,
+                population: e.population,
+                total_delta: e.total_delta,
+                per_capita_delta: e.per_capita_delta,
+                affected_count: e.affected_count,
             }).collect(),
         };
         serde_json::to_string(&response).unwrap()

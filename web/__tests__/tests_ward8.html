@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <title>Ward 8 — Geo View Tests</title>
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    .test-runner { padding: 24px; max-width: 800px; margin: 0 auto; }
+    .test-result { padding: 8px 12px; margin: 4px 0; border-radius: 4px; font-family: var(--mono); font-size: 0.85rem; }
+    .test-result.pass { background: #1a3a2a; color: var(--positive); }
+    .test-result.fail { background: #3a1a1a; color: var(--negative); }
+    .test-summary { margin-top: 16px; font-size: 1.1rem; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="test-runner">
+    <h1>Ward 8 — Geo View Tests</h1>
+    <div id="results"></div>
+    <div id="summary" class="test-summary"></div>
+  </div>
+
+  <div id="test-container" style="position:absolute;left:-9999px;width:900px;height:700px;">
+  </div>
+
+  <script type="module">
+    import { createKommuneKort } from '../components/kommune_kort.js';
+    import { createTooltip } from '../components/tooltip.js';
+
+    const resultsEl = document.getElementById('results');
+    const summaryEl = document.getElementById('summary');
+    const tc = document.getElementById('test-container');
+    let passed = 0, failed = 0;
+
+    function assert(condition, msg) {
+      if (!condition) throw new Error(msg);
+    }
+
+    function report(name, status, detail) {
+      const div = document.createElement('div');
+      div.className = 'test-result ' + status;
+      div.textContent = status.toUpperCase() + ' ' + name + (detail ? ': ' + detail : '');
+      div.dataset.testName = name;
+      div.dataset.testStatus = status;
+      resultsEl.appendChild(div);
+      if (status === 'pass') passed++; else failed++;
+    }
+
+    async function runTest(name, fn) {
+      try { await fn(); report(name, 'pass'); }
+      catch (e) { report(name, 'fail', e.message); }
+    }
+
+    function clearChildren(el) {
+      while (el.firstChild) el.removeChild(el.firstChild);
+    }
+
+    // Mock geo data: 98 kommuner (IDs 1..98), varying deltas
+    const mockGeoData = {
+      kommuner: Array.from({ length: 98 }, (_, i) => {
+        const kid = i + 1;
+        const pop = 500 + Math.floor(Math.random() * 3000);
+        const delta = (kid <= 20) ? (kid % 3 === 0 ? -5000 : 8000) : (kid % 5 === 0 ? -2000 : 0);
+        return {
+          kommune_id: kid,
+          population: pop,
+          total_delta: delta,
+          per_capita_delta: pop > 0 ? delta / pop : 0,
+          affected_count: Math.abs(delta) > 0 ? Math.floor(pop * 0.1) : 0,
+        };
+      }),
+    };
+
+    const KOMMUNE_NAMES = {
+      1: 'K\u00f8benhavn', 2: 'Aarhus', 3: 'Odense', 4: 'Aalborg', 5: 'Esbjerg',
+      6: 'Randers', 7: 'Vejle', 8: 'Horsens', 9: 'Kolding', 10: 'Silkeborg',
+    };
+
+    // ── Test 2: SVG with 98 kommune paths ──
+    await runTest('test_svg_98_paths', () => {
+      const container = document.createElement('div');
+      tc.appendChild(container);
+      const kort = createKommuneKort(container);
+      kort.update(mockGeoData, false);
+
+      const svg = container.querySelector('svg');
+      assert(svg, 'should render an SVG element');
+
+      const paths = svg.querySelectorAll('path[data-kommune-id]');
+      assert(paths.length === 98, 'expected 98 paths, got ' + paths.length);
+
+      const ids = new Set();
+      paths.forEach(p => ids.add(Number(p.dataset.kommuneId)));
+      assert(ids.size === 98, 'all 98 unique kommune IDs should be present');
+
+      for (let i = 1; i <= 98; i++) {
+        assert(ids.has(i), 'missing kommune_id ' + i);
+      }
+    });
+
+    // ── Test 3: Heatmap colors green → grey → red ──
+    await runTest('test_heatmap_colors', () => {
+      const container = document.createElement('div');
+      tc.appendChild(container);
+      const kort = createKommuneKort(container);
+      kort.update(mockGeoData, false);
+
+      const svg = container.querySelector('svg');
+
+      // Find a kommune with positive delta (merudgift → red-ish)
+      const posKommune = mockGeoData.kommuner.find(k => k.total_delta > 0);
+      const posPath = svg.querySelector(`path[data-kommune-id="${posKommune.kommune_id}"]`);
+      const posFill = posPath.getAttribute('fill') || getComputedStyle(posPath).fill;
+
+      // Find a kommune with negative delta (besparelse → green-ish)
+      const negKommune = mockGeoData.kommuner.find(k => k.total_delta < 0);
+      const negPath = svg.querySelector(`path[data-kommune-id="${negKommune.kommune_id}"]`);
+      const negFill = negPath.getAttribute('fill') || getComputedStyle(negPath).fill;
+
+      // Find a kommune with zero delta (neutral → grey-ish)
+      const zeroKommune = mockGeoData.kommuner.find(k => k.total_delta === 0);
+      const zeroPath = svg.querySelector(`path[data-kommune-id="${zeroKommune.kommune_id}"]`);
+      const zeroFill = zeroPath.getAttribute('fill') || getComputedStyle(zeroPath).fill;
+
+      assert(posFill !== zeroFill, 'positive delta fill should differ from neutral');
+      assert(negFill !== zeroFill, 'negative delta fill should differ from neutral');
+      assert(posFill !== negFill, 'positive and negative fills should differ');
+    });
+
+    // ── Test 4: Update on scenario change ──
+    await runTest('test_update_on_scenario', () => {
+      const container = document.createElement('div');
+      tc.appendChild(container);
+      const kort = createKommuneKort(container);
+      kort.update(mockGeoData, false);
+
+      // Modify data and re-render
+      const modified = JSON.parse(JSON.stringify(mockGeoData));
+      modified.kommuner[0].total_delta = -99999;
+      modified.kommuner[0].per_capita_delta = -99999 / modified.kommuner[0].population;
+
+      const t0 = performance.now();
+      kort.update(modified, false);
+      const elapsed = performance.now() - t0;
+
+      assert(elapsed < 200, 'update should be under 200ms, took ' + elapsed.toFixed(1) + 'ms');
+
+      const svg = container.querySelector('svg');
+      const path1 = svg.querySelector('path[data-kommune-id="1"]');
+      const fill = path1.getAttribute('fill') || '';
+      assert(fill !== '', 'path should have updated fill');
+    });
+
+    // ── Test 5: Hover tooltip ──
+    await runTest('test_hover_tooltip', async () => {
+      const container = document.createElement('div');
+      tc.appendChild(container);
+      const kort = createKommuneKort(container);
+      kort.update(mockGeoData, false);
+
+      const svg = container.querySelector('svg');
+      const path = svg.querySelector('path[data-kommune-id="1"]');
+
+      path.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true, clientX: 100, clientY: 100 }));
+      await new Promise(r => setTimeout(r, 50));
+
+      const tooltip = container.querySelector('.geo-tooltip');
+      assert(tooltip, 'tooltip element should exist after hover');
+      assert(!tooltip.hidden, 'tooltip should be visible');
+
+      const text = tooltip.textContent;
+      assert(text.length > 0, 'tooltip should have content');
+
+      path.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 50));
+      assert(tooltip.hidden || tooltip.style.display === 'none',
+        'tooltip should hide after mouse leave');
+    });
+
+    // ── Test 6: Click sets active filter ──
+    await runTest('test_click_sets_filter', async () => {
+      const container = document.createElement('div');
+      tc.appendChild(container);
+      const kort = createKommuneKort(container);
+      kort.update(mockGeoData, false);
+
+      let filterValue = null;
+      kort.onFilterChange(kommuneId => { filterValue = kommuneId; });
+
+      const svg = container.querySelector('svg');
+      const path = svg.querySelector('path[data-kommune-id="4"]');
+      path.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 50));
+
+      assert(filterValue === 4, 'click should set filter to kommune 4, got ' + filterValue);
+
+      const active = svg.querySelector('path.active');
+      assert(active, 'clicked path should have .active class');
+      assert(Number(active.dataset.kommuneId) === 4, 'active path should be kommune 4');
+    });
+
+    // ── Test 7: Dashboard receives filtered data ──
+    await runTest('test_dashboard_receives_filtered', async () => {
+      const container = document.createElement('div');
+      tc.appendChild(container);
+      const kort = createKommuneKort(container);
+      kort.update(mockGeoData, false);
+
+      let receivedId = null;
+      kort.onFilterChange(kommuneId => { receivedId = kommuneId; });
+
+      const svg = container.querySelector('svg');
+      svg.querySelector('path[data-kommune-id="7"]')
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 50));
+
+      assert(receivedId === 7,
+        'filter callback should fire with kommune_id 7, got ' + receivedId);
+
+      // Click same kommune again to deselect
+      svg.querySelector('path[data-kommune-id="7"]')
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 50));
+
+      assert(receivedId === null,
+        'second click should clear filter (null), got ' + receivedId);
+    });
+
+    // ── Test 8: Filter badge and reset ──
+    await runTest('test_filter_badge_and_reset', async () => {
+      const container = document.createElement('div');
+      tc.appendChild(container);
+      const kort = createKommuneKort(container);
+      kort.update(mockGeoData, false);
+
+      const svg = container.querySelector('svg');
+      svg.querySelector('path[data-kommune-id="2"]')
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 50));
+
+      const badge = container.querySelector('.geo-filter-badge');
+      assert(badge, 'filter badge should exist');
+      assert(!badge.hidden, 'badge should be visible after selection');
+
+      const resetBtn = container.querySelector('.geo-filter-reset');
+      assert(resetBtn, 'reset button should exist');
+
+      let filterCleared = false;
+      kort.onFilterChange(id => { if (id === null) filterCleared = true; });
+
+      resetBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 50));
+
+      assert(filterCleared, 'reset should clear filter');
+      assert(badge.hidden || badge.style.display === 'none', 'badge should hide after reset');
+    });
+
+    // ── Test 9: Per-capita toggle ──
+    await runTest('test_per_capita_toggle', async () => {
+      const container = document.createElement('div');
+      tc.appendChild(container);
+      const kort = createKommuneKort(container);
+      kort.update(mockGeoData, false);
+
+      const toggle = container.querySelector('.per-capita-toggle');
+      assert(toggle, 'per-capita toggle should exist');
+
+      // Get fill in absolute mode
+      const svg = container.querySelector('svg');
+      const posK = mockGeoData.kommuner.find(k => k.total_delta > 1000);
+      const pathEl = svg.querySelector(`path[data-kommune-id="${posK.kommune_id}"]`);
+      const absFill = pathEl.getAttribute('fill');
+
+      // Switch to per-capita
+      toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 50));
+
+      const pcFill = pathEl.getAttribute('fill');
+
+      // Fills may or may not change (depends on data), but the toggle state should change
+      const isPerCapita = toggle.classList.contains('active') || toggle.getAttribute('aria-pressed') === 'true';
+      assert(isPerCapita, 'toggle should be active/pressed after click');
+
+      // Click again to return to absolute
+      toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 50));
+
+      const isAbsolute = !toggle.classList.contains('active') || toggle.getAttribute('aria-pressed') === 'false';
+      assert(isAbsolute, 'toggle should be inactive after second click');
+    });
+
+    summaryEl.textContent = passed + ' passed, ' + failed + ' failed of ' + (passed + failed) + ' tests';
+    summaryEl.style.color = failed === 0 ? 'var(--positive)' : 'var(--negative)';
+    window.__testResults = { passed, failed, total: passed + failed };
+  </script>
+</body>
+</html>

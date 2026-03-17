@@ -1,7 +1,7 @@
 # Progress — kmd-regelsim
 
 ## Summary
-8 of 13 Wards complete · 94 estimated tests · 0 blocked
+9 of 13 Wards complete · 94 estimated tests · 0 blocked
 
 ## Ward Status
 | Ward | Name | Tests | Status | Date |
@@ -14,7 +14,7 @@
 | 5b | WASM Bridge (fix b) | 1 | ✅ Complete | 2026-03-16 |
 | 6 | Dashboard View | 10 | ✅ Complete | 2026-03-16 |
 | 7 | Case Explainer View | 9 | ✅ Complete | 2026-03-16 |
-| 8 | Geo View Kommunekort | 9 | 📋 Planned | - |
+| 8 | Geo View Kommunekort | 9 | ✅ Complete | 2026-03-17 |
 | 9 | Performance Tuning og 500K Stretch | 9 | 📋 Planned | - |
 | 10 | Accessibility og Error Handling | 7 | 📋 Planned | - |
 | 11 | Demo Orchestration | 7 | 📋 Planned | - |

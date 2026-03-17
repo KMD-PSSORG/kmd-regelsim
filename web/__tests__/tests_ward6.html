@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Ward 6 — Dashboard Tests</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="../styles.css">
   <style>
     .test-runner { padding: 24px; max-width: 800px; margin: 0 auto; }
     .test-result { padding: 8px 12px; margin: 4px 0; border-radius: 4px; font-family: var(--mono); font-size: 0.85rem; }
@@ -32,11 +32,11 @@
   </div>
 
   <script type="module">
-    import { renderStatsPanel } from './components/stats_panel.js';
-    import { renderSliderPanel } from './components/slider_panel.js';
-    import { renderHistogram } from './components/histogram.js';
-    import { renderAffectedList } from './components/affected_list.js';
-    import { renderSegmentTable } from './components/segment_table.js';
+    import { renderStatsPanel } from '../components/stats_panel.js';
+    import { renderSliderPanel } from '../components/slider_panel.js';
+    import { renderHistogram } from '../components/histogram.js';
+    import { renderAffectedList } from '../components/affected_list.js';
+    import { renderSegmentTable } from '../components/segment_table.js';
 
     const resultsEl = document.getElementById('results');
     const summaryEl = document.getElementById('summary');
