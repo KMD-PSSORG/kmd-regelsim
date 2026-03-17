@@ -154,3 +154,25 @@ fn test_json_response_sizes() {
     assert!(top_json.len() < 5_000, "top JSON too large: {}", top_json.len());
     assert!(case_json.len() < 2_000, "case JSON too large: {}", case_json.len());
 }
+
+// ── Test 7: Filtered stats uses scenario when active ──
+#[test]
+fn test_filtered_stats_uses_scenario() {
+    let mut engine = Engine::new();
+    let _ = engine.init();
+
+    let baseline_json = engine.get_filtered_stats(None);
+    let baseline: serde_json::Value = serde_json::from_str(&baseline_json).unwrap();
+
+    let _ = engine.apply_scenario(0, 13_050.0);
+
+    let scenario_json = engine.get_filtered_stats(None);
+    let scenario: serde_json::Value = serde_json::from_str(&scenario_json).unwrap();
+
+    let base_kh = baseline["rules"][0]["total"].as_f64().unwrap();
+    let scen_kh = scenario["rules"][0]["total"].as_f64().unwrap();
+    assert!(
+        (base_kh - scen_kh).abs() > 1.0,
+        "filtered stats should reflect scenario, not baseline. base={}, scen={}", base_kh, scen_kh
+    );
+}

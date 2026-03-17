@@ -2,7 +2,7 @@
 
 ## Identity
 - **Name:** kmd-regelsim
-- **One-liner:** Browser-native konsekvenssimulator for regelændringer i dansk offentlig forvaltning
+- **One-liner:** En generisk browser-native konsekvensmotor til sats-, regel- og scenariebaserede beregninger i offentlig administration
 - **License:** MIT
 - **Author:** Dennis Ejby Schmock (KMD)
 - **Methodology:** Ward-Driven Development (WDD) med GS-TDD enforcement
@@ -50,6 +50,6 @@ Browser
 - No persistence, authentication, or backend
 - No attempt at legal correctness
 - No generic charting or UI component library
-- No config-driven rule loading (regler er Rust structs)
+- No config-driven rule loading (regelsæt er udskiftelige moduler med fælles evalueringskontrakt)
 - No Arrow, Parquet, or external data formats
 - No multi-language support beyond da/en labels

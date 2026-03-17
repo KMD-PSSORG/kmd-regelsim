@@ -64,3 +64,7 @@ JSON valgt i v1 for simplicity og debuggability. Kun på public bridge. Intern e
 
 ## Verification
 `wasm-pack build` kompilerer. bridge.js kalder alle funktioner. JSON valid. Round-trip under 2ms.
+
+## Reopened — 2026-03-16
+Reason: get_filtered_stats() uses baseline instead of scenario results — breaks demo consistency when kommune filter is active after scenario change
+Fix Ward: ward-005b.md

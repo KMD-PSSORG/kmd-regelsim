@@ -1,10 +1,11 @@
 # Context — kmd-regelsim
 
 ## Last Updated
-2026-03-16 — v3 spec loaded, Ward 1 gold
+2026-03-16 — Post-review fixes applied (GPT 5.4 review of Ward 1–7)
 
 ## Current State
-Ward 1 (Kolonnebaseret Datastruktur + Syntetisk Data) er i gold — 7/7 tests grønne. Skal opdateres med borger_id fra v3 spec.
+Wards 1–7 complete. Ward 5b (filtered_stats scenario bug) fixed and gold — awaiting human complete.
+Backlog created with 4 items from post-review.
 
 ## Architecture Decisions Made
 | Decision | Rationale | Ward |
@@ -39,9 +40,15 @@ Ward 1 (Kolonnebaseret Datastruktur + Syntetisk Data) er i gold — 7/7 tests gr
 | WASM→JS transfer | <5ms | Ward 5 |
 | DOM update | <16ms | Ward 6 |
 
-## Known Limitations
-_None yet_
+## Known Limitations / Backlog (from post-review)
+| ID | Priority | Description | Target Ward |
+|----|----------|-------------|-------------|
+| BL-001 | P1 | Split KontanthjaelpBasis into Enlig/Par | Before Ward 11 |
+| BL-002 | P1 | Histogram must use real distribution buckets from engine | Before Ward 11 |
+| BL-003 | P1 | Replace panic/unwrap/expect with Result/JSON error responses | Ward 10 |
+| BL-004 | P2 | find_by_id() O(n) → O(1) via direct index mapping | Ward 9 |
 
 ## What Comes Next
-- Ward 1: Tilføj borger_id, ekstra test (v3 opdatering)
-- Ward 2: Regelmotor med Dependency Graph
+- Ward 5b: Awaiting human complete
+- Ward 8: Geo View (on hold until user says go)
+- Backlog P1 items before Ward 11

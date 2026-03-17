@@ -244,25 +244,24 @@ impl Engine {
     }
 
     pub fn get_filtered_stats(&self, kommune_id: Option<u8>) -> String {
-        let mut counts = [0_usize; 3];
+        let active_result = self.last_scenario_result.as_ref().unwrap_or(&self.baseline);
         let mut totals = [0.0_f64; 3];
         let mut eligible = [0_usize; 3];
         let mut borger_count = 0_usize;
 
-        for i in 0..self.baseline.count {
+        for i in 0..active_result.count {
             if let Some(kid) = kommune_id {
                 if self.store.kommune_id[i] != kid {
                     continue;
                 }
             }
             borger_count += 1;
-            let r = &self.baseline.borger_results[i];
+            let r = &active_result.borger_results[i];
             for (idx, &rid) in RULE_IDS.iter().enumerate() {
                 totals[idx] += r.amount(rid);
                 if r.is_eligible(rid) {
                     eligible[idx] += 1;
                 }
-                counts[idx] += 1;
             }
         }
 
