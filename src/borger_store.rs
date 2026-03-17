@@ -25,9 +25,11 @@ impl BorgerStore {
         self.alder.is_empty()
     }
 
-    /// Look up a borger by borger_id. Returns None if not found.
+    /// O(1) lookup: borger_id is monotonically assigned as 1..=count,
+    /// so index = borger_id - 1.
     pub fn find_by_id(&self, borger_id: u32) -> Option<usize> {
-        self.borger_id.iter().position(|&id| id == borger_id)
+        let idx = borger_id.checked_sub(1)? as usize;
+        if idx < self.len() { Some(idx) } else { None }
     }
 
     pub fn view(&self, index: usize) -> BorgerView<'_> {
