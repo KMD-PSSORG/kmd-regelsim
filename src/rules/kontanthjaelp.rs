@@ -47,7 +47,16 @@ impl Rule for Kontanthjaelp {
             params.kontanthjaelpsloft_par
         };
 
-        let amount = (basis + tillaeg).min(loft);
+        let monthly_income = borger.bruttoindkomst / 12.0;
+        let amount = (basis + tillaeg - monthly_income).max(0.0).min(loft);
+
+        if amount <= 0.0 {
+            return RuleResult {
+                rule_id: RuleId::Kontanthjaelp,
+                amount: 0.0,
+                eligible: false,
+            };
+        }
 
         RuleResult {
             rule_id: RuleId::Kontanthjaelp,

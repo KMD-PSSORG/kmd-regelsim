@@ -3,7 +3,7 @@ ward: 11
 revision: null
 name: "Demo Orchestration"
 epic: "Demo"
-status: "planned"
+status: "gold"
 dependencies: [6, 7, 8, 9, 10]
 layer: "javascript"
 estimated_tests: 7

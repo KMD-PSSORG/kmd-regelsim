@@ -147,36 +147,40 @@ fn test_kontanthjaelp_manual_cases() {
             continue;
         }
 
+        let monthly_income = borger.bruttoindkomst / 12.0;
+
         match (borger.husstandstype, borger.antal_boern) {
-            // Case 1: Enlig uden boern, ledig
-            (Husstandstype::Enlig, 0) if !found_enlig_uden => {
-                assert!(result.eligible, "enlig ledig uden boern should be eligible");
-                assert_eq!(result.amount, params.kontanthjaelp_basis_enlig,
-                    "enlig uden boern should get basis: {}", result.amount);
+            (Husstandstype::Enlig, 0) if !found_enlig_uden && monthly_income < params.kontanthjaelp_basis_enlig => {
+                assert!(result.eligible, "enlig ledig lav-indkomst should be eligible");
+                let expected = params.kontanthjaelp_basis_enlig - monthly_income;
+                assert!((result.amount - expected).abs() < 0.01,
+                    "enlig uden boern: got {}, expected {}", result.amount, expected);
                 found_enlig_uden = true;
             }
-            // Case 2: Enlig forsoerger med boern, ledig
-            (Husstandstype::EnligForsoerger, n) if n > 0 && !found_enlig_med => {
-                assert!(result.eligible, "enlig forsoerger ledig should be eligible");
+            (Husstandstype::EnligForsoerger, n) if n > 0 && !found_enlig_med && monthly_income < params.kontanthjaelp_basis_enlig => {
+                assert!(result.eligible, "enlig forsoerger lav-indkomst should be eligible");
                 let expected = (params.kontanthjaelp_basis_enlig
-                    + n as f64 * params.forsoergertillaeg_per_barn)
+                    + n as f64 * params.forsoergertillaeg_per_barn
+                    - monthly_income)
+                    .max(0.0)
                     .min(params.kontanthjaelpsloft_enlig);
                 assert!((result.amount - expected).abs() < 0.01,
                     "enlig forsoerger: got {}, expected {}", result.amount, expected);
                 found_enlig_med = true;
             }
-            // Case 3: Par uden boern, ledig
-            (Husstandstype::ParUdenBoern, 0) if !found_par_uden => {
-                assert!(result.eligible, "par uden boern ledig should be eligible");
-                assert_eq!(result.amount, params.kontanthjaelp_basis_par,
-                    "par uden boern should get par-basis: {}", result.amount);
+            (Husstandstype::ParUdenBoern, 0) if !found_par_uden && monthly_income < params.kontanthjaelp_basis_par => {
+                assert!(result.eligible, "par uden boern lav-indkomst should be eligible");
+                let expected = params.kontanthjaelp_basis_par - monthly_income;
+                assert!((result.amount - expected).abs() < 0.01,
+                    "par uden boern: got {}, expected {}", result.amount, expected);
                 found_par_uden = true;
             }
-            // Case 4: Par med boern, ledig
-            (Husstandstype::ParMedBoern, n) if n > 0 && !found_par_med => {
-                assert!(result.eligible, "par med boern ledig should be eligible");
+            (Husstandstype::ParMedBoern, n) if n > 0 && !found_par_med && monthly_income < params.kontanthjaelp_basis_par => {
+                assert!(result.eligible, "par med boern lav-indkomst should be eligible");
                 let expected = (params.kontanthjaelp_basis_par
-                    + n as f64 * params.forsoergertillaeg_per_barn)
+                    + n as f64 * params.forsoergertillaeg_per_barn
+                    - monthly_income)
+                    .max(0.0)
                     .min(params.kontanthjaelpsloft_par);
                 assert!((result.amount - expected).abs() < 0.01,
                     "par med boern: got {}, expected {}", result.amount, expected);
@@ -199,20 +203,23 @@ fn test_kontanthjaelp_manual_cases() {
 // --- Test 6: Configurable parameters ---
 #[test]
 fn test_configurable_params() {
-    let store = borger_generator::generate(SEED, 1_000);
+    let store = borger_generator::generate(SEED, 10_000);
     let kh = Kontanthjaelp;
     let ctx = EvalContext::new();
+
+    let params_default = RuleParams::default();
 
     let idx = (0..store.len())
         .find(|&i| {
             let b = store.view(i);
-            b.husstandstype == Husstandstype::Enlig && borger_is_ledig(&b)
+            b.husstandstype == Husstandstype::Enlig
+                && borger_is_ledig(&b)
+                && b.bruttoindkomst / 12.0 < params_default.kontanthjaelp_basis_enlig - 1000.0
         })
-        .expect("should find an enlig ledig borger");
+        .expect("should find an enlig ledig low-income borger");
 
     let borger = store.view(idx);
 
-    let params_default = RuleParams::default();
     let result_default = kh.evaluate(&borger, &ctx, &params_default);
 
     let mut params_modified = RuleParams::default();

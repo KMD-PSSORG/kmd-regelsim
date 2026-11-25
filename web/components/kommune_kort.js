@@ -1,4 +1,5 @@
 import { createTooltip } from './tooltip.js';
+import { KOMMUNE_PATHS } from '../data/kommune_paths.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const FMT = new Intl.NumberFormat('da-DK', { maximumFractionDigits: 0 });
@@ -27,62 +28,13 @@ const KOMMUNE_NAMES = {
   96:'Mariagerfjord',97:'Jammerbugt',98:'Brønderslev',
 };
 
-/**
- * Generate simplified SVG paths for 98 Danish kommuner.
- * Layout: approximate geographic positions on a 500×600 grid.
- * Each kommune is a small polygon/rect placed at its rough position.
- */
 function generateKommunePaths() {
-  const positions = computeKommunePositions();
   const paths = [];
   for (let id = 1; id <= 98; id++) {
-    const [cx, cy] = positions[id] || [250, 300];
-    const s = 18 + (id <= 20 ? 4 : 0);
-    const d = `M${cx - s},${cy - s * 0.6} ` +
-              `L${cx + s},${cy - s * 0.6} ` +
-              `L${cx + s * 0.9},${cy + s * 0.6} ` +
-              `L${cx - s * 0.9},${cy + s * 0.6} Z`;
-    paths.push({ id, d });
+    const d = KOMMUNE_PATHS[id];
+    if (d) paths.push({ id, d });
   }
   return paths;
-}
-
-function computeKommunePositions() {
-  const p = {};
-  // Jylland Nord
-  p[4]=  [220,40];  p[19]=[180,30]; p[20]=[260,25]; p[97]=[160,55]; p[98]=[220,60];
-  p[95]=[260,70];   p[96]=[280,60]; p[83]=[130,80]; p[84]=[150,100]; p[15]=[230,95];
-  // Jylland Midt
-  p[80]=[100,115];  p[81]=[120,125]; p[82]=[160,115]; p[16]=[110,140];
-  p[11]=[180,140];  p[86]=[90,160]; p[85]=[200,145]; p[10]=[240,135];
-  p[6]=  [280,110]; p[77]=[260,125]; p[78]=[300,120]; p[79]=[310,100];
-  // Jylland Syd + Midt-øst
-  p[71]=[110,185];  p[66]=[160,185]; p[72]=[140,200]; p[5]=[80,200];
-  p[70]=[60,210];   p[7]=[200,195]; p[87]=[220,185]; p[8]=[260,170];
-  p[75]=[270,160];  p[76]=[290,155]; p[2]=[300,140];
-  p[73]=[210,210];  p[9]=[190,220]; p[68]=[120,240]; p[69]=[160,235];
-  p[65]=[200,240];  p[67]=[140,255];
-  // Fyn
-  p[57]=[185,260];  p[62]=[210,255]; p[60]=[240,255]; p[3]=[220,275];
-  p[58]=[190,280];  p[59]=[210,290]; p[61]=[250,275]; p[18]=[220,305];
-  p[63]=[240,320];  p[64]=[210,330]; p[94]=[280,245];
-  // Sjælland Vest
-  p[90]=[310,230];  p[34]=[320,215]; p[35]=[330,225]; p[26]=[300,250];
-  p[23]=[340,245];  p[36]=[350,235]; p[29]=[320,265]; p[12]=[350,260];
-  p[24]=[330,275];  p[25]=[310,275]; p[17]=[290,285]; p[33]=[360,215];
-  // Sjælland Øst (Hovedstaden)
-  p[21]=[370,230];  p[22]=[390,220]; p[38]=[380,235]; p[37]=[365,240];
-  p[39]=[385,245];  p[40]=[380,250]; p[47]=[360,250]; p[46]=[355,255];
-  p[41]=[385,258];  p[42]=[395,250]; p[43]=[370,260]; p[44]=[360,263];
-  p[45]=[350,268];  p[48]=[365,270]; p[53]=[375,268]; p[14]=[390,262];
-  p[1]=  [400,270]; p[52]=[380,278]; p[49]=[368,278]; p[50]=[358,280];
-  p[51]=[363,283];  p[56]=[348,278]; p[55]=[393,285]; p[54]=[400,290];
-  // Sjælland Syd
-  p[30]=[355,285];  p[32]=[340,290]; p[31]=[348,292]; p[27]=[325,295];
-  p[28]=[335,300];  p[13]=[305,305]; p[93]=[310,320]; p[92]=[290,330];
-  p[91]=[275,340];  p[89]=[420,300];
-  p[88]=[200,195]; // duplicate Vejle alias
-  return p;
 }
 
 function deltaColor(value, maxAbs) {
@@ -108,7 +60,7 @@ function deltaColor(value, maxAbs) {
  */
 export function createKommuneKort(container) {
   const svg = document.createElementNS(NS, 'svg');
-  svg.setAttribute('viewBox', '0 0 460 380');
+  svg.setAttribute('viewBox', '41 27 577 420');
   svg.setAttribute('role', 'img');
   svg.setAttribute('aria-label', 'Kommunekort over Danmark');
   svg.style.width = '100%';

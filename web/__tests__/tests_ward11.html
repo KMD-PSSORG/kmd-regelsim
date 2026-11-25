@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <title>Ward 11 — Demo Orchestration Tests</title>
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    .test-runner { padding: 24px; max-width: 800px; margin: 0 auto; }
+    .test-result { padding: 8px 12px; margin: 4px 0; border-radius: 4px; font-family: var(--mono); font-size: 0.85rem; }
+    .test-result.pass { background: #1a3a2a; color: var(--positive); }
+    .test-result.fail { background: #3a1a1a; color: var(--negative); }
+    .test-summary { margin-top: 16px; font-size: 1.1rem; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="test-runner">
+    <h1>Ward 11 — Demo Orchestration Tests</h1>
+    <div id="results"></div>
+    <div id="summary" class="test-summary"></div>
+  </div>
+
+  <div id="test-container" style="position:absolute;left:-9999px;width:1200px;height:900px;">
+  </div>
+
+  <script type="module">
+    const v = Date.now();
+    const { createApp } = await import(`../app.js?v=${v}`);
+
+    const resultsEl = document.getElementById('results');
+    const summaryEl = document.getElementById('summary');
+    const tc = document.getElementById('test-container');
+    let passed = 0, failed = 0;
+
+    function assert(condition, msg) {
+      if (!condition) throw new Error(msg);
+    }
+
+    function report(name, status, detail) {
+      const div = document.createElement('div');
+      div.className = 'test-result ' + status;
+      div.textContent = status.toUpperCase() + ' ' + name + (detail ? ': ' + detail : '');
+      div.dataset.testName = name;
+      div.dataset.testStatus = status;
+      resultsEl.appendChild(div);
+      if (status === 'pass') passed++; else failed++;
+    }
+
+    async function runTest(name, fn) {
+      try {
+        await fn();
+        report(name, 'pass');
+      } catch (e) {
+        report(name, 'fail', e.message);
+      }
+    }
+
+    const mockEngine = {
+      baseline: [
+        { rule: 'kontanthjaelp', total: 125_000_000, eligible: 15_000, mean: 8_333 },
+        { rule: 'boligstoette', total: 66_000_000, eligible: 25_000, mean: 2_640 },
+        { rule: 'boerneydelse', total: 50_000_000, eligible: 35_000, mean: 1_429 },
+      ],
+      diff: {
+        total_delta: 5_000_000,
+        affected_count: 12_000,
+        per_rule: [
+          { rule: 'kontanthjaelp', total_delta: 5_000_000, gained: 200, lost: 50 },
+          { rule: 'boligstoette', total_delta: 1_000_000, gained: 100, lost: 30 },
+          { rule: 'boerneydelse', total_delta: 0, gained: 0, lost: 0 },
+        ],
+      },
+      topAffected: Array.from({ length: 10 }, (_, i) => ({
+        borger_id: 1000 + i,
+        delta: 5000 - i * 500,
+      })),
+      geoData: {
+        kommuner: Array.from({ length: 98 }, (_, i) => ({
+          kommune_id: i + 1,
+          population: 500 + Math.floor(Math.random() * 3000),
+          total_delta: (i % 5 === 0) ? 8000 : (i % 3 === 0) ? -5000 : 0,
+          per_capita_delta: 0,
+          affected_count: (i % 5 === 0) ? 100 : 0,
+        })),
+      },
+      histogramData: {
+        rule: 'kontanthjaelp',
+        buckets: Array.from({ length: 20 }, (_, i) => ({
+          min: i * 1000,
+          max: (i + 1) * 1000,
+          count: Math.floor(Math.random() * 500) + 10,
+        })),
+      },
+      caseDetail: {
+        borger_id: 42, alder: 34, kommune_id: 1,
+        husstandstype: 'enlig_forsoerger', beskaeftigelse: 'ledig',
+        indkomst: 0, husleje: 6500, boligareal: 75, antal_boern: 2,
+        rules: [
+          { rule: 'kontanthjaelp', baseline_amount: 15970, scenario_amount: 16470, eligible: true, delta: 500, explanation: 'Basissats 12.550 kr.', threshold_warnings: [] },
+          { rule: 'boligstoette', baseline_amount: 3200, scenario_amount: 3100, eligible: true, delta: -100, explanation: 'Husleje 6.500 kr.', threshold_warnings: [] },
+          { rule: 'boerneydelse', baseline_amount: 2819, scenario_amount: 2819, eligible: true, delta: 0, explanation: '2 børn.', threshold_warnings: [] },
+        ],
+      },
+    };
+
+    // ── Test 1: Load time under 3 seconds ──
+    await runTest('test_load_time', async () => {
+      const container = document.createElement('div');
+      container.style.width = '1200px';
+      container.style.height = '900px';
+      tc.appendChild(container);
+
+      const t0 = performance.now();
+      const app = createApp(container, mockEngine);
+      const elapsed = performance.now() - t0;
+
+      assert(elapsed < 3000, `app should initialize in <3s, took ${elapsed.toFixed(0)}ms`);
+      assert(container.children.length > 0, 'app should render content');
+    });
+
+    // ── Test 2: Intro overlay with disclaimer and start button ──
+    await runTest('test_intro_overlay', async () => {
+      const container = document.createElement('div');
+      container.style.width = '1200px';
+      container.style.height = '900px';
+      tc.appendChild(container);
+
+      const app = createApp(container, mockEngine);
+
+      const overlay = container.querySelector('.intro-overlay');
+      assert(overlay, 'should have intro overlay');
+      assert(!overlay.hidden, 'intro overlay should be visible initially');
+
+      const disclaimer = overlay.querySelector('.intro-disclaimer');
+      assert(disclaimer, 'should have disclaimer text');
+
+      const startBtn = overlay.querySelector('.intro-start');
+      assert(startBtn, 'should have start button');
+
+      startBtn.click();
+      await new Promise(r => setTimeout(r, 50));
+      assert(overlay.hidden, 'intro overlay should be hidden after start');
+    });
+
+    // ── Test 3: Pre-loaded scenario active after start ──
+    await runTest('test_preloaded_scenario', async () => {
+      const container = document.createElement('div');
+      container.style.width = '1200px';
+      container.style.height = '900px';
+      tc.appendChild(container);
+
+      const app = createApp(container, mockEngine);
+
+      const startBtn = container.querySelector('.intro-start');
+      startBtn.click();
+      await new Promise(r => setTimeout(r, 50));
+
+      const statsPanel = container.querySelector('.stats-panel');
+      assert(statsPanel, 'should have stats panel after start');
+
+      const delta = statsPanel.querySelector('.delta');
+      assert(delta, 'should show scenario delta (pre-loaded scenario)');
+    });
+
+    // ── Test 4: Performance HUD toggles with P key ──
+    await runTest('test_performance_hud', async () => {
+      const container = document.createElement('div');
+      container.style.width = '1200px';
+      container.style.height = '900px';
+      tc.appendChild(container);
+
+      const app = createApp(container, mockEngine);
+      container.querySelector('.intro-start').click();
+      await new Promise(r => setTimeout(r, 50));
+
+      const hud = container.querySelector('.perf-hud');
+      assert(hud, 'should have performance HUD element');
+      const wasHidden = hud.hidden;
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'p' }));
+      await new Promise(r => setTimeout(r, 50));
+      assert(hud.hidden !== wasHidden, 'P key should toggle HUD visibility');
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'p' }));
+      await new Promise(r => setTimeout(r, 50));
+      assert(hud.hidden === wasHidden, 'P key again should restore HUD visibility');
+    });
+
+    // ── Test 5: All 3 views connected ──
+    await runTest('test_all_views_connected', async () => {
+      const container = document.createElement('div');
+      container.style.width = '1200px';
+      container.style.height = '900px';
+      tc.appendChild(container);
+
+      const app = createApp(container, mockEngine);
+      container.querySelector('.intro-start').click();
+      await new Promise(r => setTimeout(r, 50));
+
+      const navBtns = container.querySelectorAll('.view-nav button');
+      assert(navBtns.length >= 3, 'should have at least 3 view navigation buttons');
+
+      for (let i = 0; i < 3; i++) {
+        navBtns[i].click();
+        await new Promise(r => setTimeout(r, 50));
+        const activeView = container.querySelector('.view-panel:not([hidden])');
+        assert(activeView, `view ${i + 1} should be visible after clicking nav button ${i + 1}`);
+      }
+    });
+
+    // ── Test 6: Keyboard shortcuts 1/2/3, P, F ──
+    await runTest('test_keyboard_shortcuts', async () => {
+      const container = document.createElement('div');
+      container.style.width = '1200px';
+      container.style.height = '900px';
+      tc.appendChild(container);
+
+      const app = createApp(container, mockEngine);
+      container.querySelector('.intro-start').click();
+      await new Promise(r => setTimeout(r, 50));
+
+      const views = container.querySelectorAll('.view-panel');
+      assert(views.length >= 3, 'should have at least 3 view panels');
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '2' }));
+      await new Promise(r => setTimeout(r, 50));
+      const view2 = views[1];
+      assert(!view2.hidden, 'pressing 2 should show view 2');
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '1' }));
+      await new Promise(r => setTimeout(r, 50));
+      assert(!views[0].hidden, 'pressing 1 should show view 1');
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: '3' }));
+      await new Promise(r => setTimeout(r, 50));
+      assert(!views[2].hidden, 'pressing 3 should show view 3');
+    });
+
+    // ── Test 7: Filter state propagates across views ──
+    await runTest('test_filter_state_propagates', async () => {
+      const container = document.createElement('div');
+      container.style.width = '1200px';
+      container.style.height = '900px';
+      tc.appendChild(container);
+
+      const app = createApp(container, mockEngine);
+      container.querySelector('.intro-start').click();
+      await new Promise(r => setTimeout(r, 50));
+
+      const navBtns = container.querySelectorAll('.view-nav button');
+      navBtns[2].click();
+      await new Promise(r => setTimeout(r, 100));
+
+      const geoView = container.querySelectorAll('.view-panel')[2];
+      const kommunePath = geoView.querySelector('path[data-kommune-id]');
+      assert(kommunePath, 'should have kommune paths in geo view');
+      kommunePath.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 100));
+
+      navBtns[0].click();
+      await new Promise(r => setTimeout(r, 50));
+
+      const badge = container.querySelector('.geo-filter-badge');
+      const filterActive = badge && !badge.hidden;
+      const indicator = container.querySelector('.filter-indicator');
+      const indicatorActive = indicator && !indicator.hidden;
+      assert(filterActive || indicatorActive,
+        'kommune filter should propagate — badge or indicator should be visible in dashboard view');
+    });
+
+    summaryEl.textContent = `${passed} passed, ${failed} failed of ${passed + failed} tests`;
+    summaryEl.style.color = failed === 0 ? 'var(--positive)' : 'var(--negative)';
+
+    window.__testResults = { passed, failed, total: passed + failed };
+  </script>
+</body>
+</html>

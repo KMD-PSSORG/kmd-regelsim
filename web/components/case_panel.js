@@ -1,5 +1,3 @@
-import { renderRuleGraph } from './rule_graph.js';
-
 const DKK = new Intl.NumberFormat('da-DK', { style: 'currency', currency: 'DKK', maximumFractionDigits: 0 });
 const NUM = new Intl.NumberFormat('da-DK');
 
@@ -105,53 +103,34 @@ export function createCasePanel() {
     }
     panel.appendChild(info);
 
-    const maxDeltaRule = caseData.rules.reduce((a, b) =>
-      Math.abs(b.delta) > Math.abs(a.delta) ? b : a
-    );
-
-    const graphContainer = document.createElement('div');
-    graphContainer.className = 'case-graph';
-    renderRuleGraph(graphContainer, caseData.rules, maxDeltaRule.rule);
-    panel.appendChild(graphContainer);
-
     const rulesSection = document.createElement('div');
     rulesSection.className = 'case-rules';
     for (const rule of caseData.rules) {
       const card = document.createElement('div');
-      card.className = 'case-rule-card';
-      if (rule.rule === maxDeltaRule.rule && Math.abs(rule.delta) > 0.01) {
-        card.classList.add('highlighted');
-      }
+      const amount = rule.amount ?? rule.baseline_amount ?? 0;
+      const eligible = rule.eligible ?? true;
+      card.className = 'case-rule-card' + (eligible ? '' : ' not-eligible');
 
       const ruleTitle = document.createElement('div');
       ruleTitle.className = 'case-rule-title';
       ruleTitle.textContent = formatRuleName(rule.rule);
       card.appendChild(ruleTitle);
 
-      const amounts = document.createElement('div');
-      amounts.className = 'case-rule-amounts';
-      amounts.textContent = DKK.format(rule.baseline_amount);
-      if (Math.abs(rule.delta) > 0.01) {
-        amounts.textContent += ' \u2192 ' + DKK.format(rule.scenario_amount);
-        const deltaSpan = document.createElement('span');
-        deltaSpan.className = 'delta ' + (rule.delta > 0 ? 'positive' : 'negative');
-        deltaSpan.textContent = ' (' + (rule.delta > 0 ? '+' : '') + DKK.format(rule.delta) + ')';
-        amounts.appendChild(deltaSpan);
-      }
-      card.appendChild(amounts);
+      const amountEl = document.createElement('div');
+      amountEl.className = 'case-rule-amount';
+      amountEl.textContent = DKK.format(amount) + '/md';
+      card.appendChild(amountEl);
 
-      const explanation = document.createElement('div');
-      explanation.className = 'case-rule-explanation';
-      explanation.textContent = rule.explanation;
-      card.appendChild(explanation);
+      const statusEl = document.createElement('div');
+      statusEl.className = 'case-rule-status ' + (eligible ? 'eligible' : 'not-eligible');
+      statusEl.textContent = eligible ? 'Berettiget' : 'Ikke berettiget';
+      card.appendChild(statusEl);
 
-      if (rule.threshold_warnings && rule.threshold_warnings.length > 0) {
-        for (const warning of rule.threshold_warnings) {
-          const warn = document.createElement('div');
-          warn.className = 'case-threshold-warning';
-          warn.textContent = '\u26a0 ' + warning;
-          card.appendChild(warn);
-        }
+      if (rule.explanation) {
+        const explanation = document.createElement('div');
+        explanation.className = 'case-rule-explanation';
+        explanation.textContent = rule.explanation;
+        card.appendChild(explanation);
       }
 
       rulesSection.appendChild(card);
